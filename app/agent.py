@@ -71,7 +71,7 @@ appropriate.
             }
         ]
 
-    def run(self, user_input):
+    def run(self, user_input, token):
         request_id = str(uuid.uuid4())
         start_time = time.perf_counter()
 
@@ -159,7 +159,8 @@ appropriate.
             # Execute tool
             result = execute_tool(
                 tool_call,
-                request_id
+                request_id,
+                token
             )
 
             # Send tool result back to LLM

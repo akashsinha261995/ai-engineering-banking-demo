@@ -8,10 +8,11 @@ from models import (
 )
 
 
-def get_customer(customer_id: str):
+def get_customer(customer_id: str, token: str):
     try:
         response = httpx.get(
             f"http://127.0.0.1:8000/customers/{customer_id}",
+            headers=get_headers(token),
             timeout=5.0
         )
 
@@ -45,10 +46,11 @@ def get_customer(customer_id: str):
         }
 
 
-def get_customer_balance(customer_id: str):
+def get_customer_balance(customer_id: str, token: str):
     try:
         response = httpx.get(
             f"http://127.0.0.1:8000/customers/{customer_id}/balance",
+            headers=get_headers(token),
             timeout=5.0
         )
 
@@ -81,11 +83,12 @@ def get_customer_balance(customer_id: str):
         }
 
 
-def record_payment(customer_id: str, amount: float):
+def record_payment(customer_id: str, amount: float, token: str):
     payment_id = str(uuid.uuid4())
     try:
         response = httpx.post(
             f"http://127.0.0.1:8000/customers/{customer_id}/payments",
+            headers=get_headers(token),
             json={"payment_id": payment_id, "amount": amount},
             timeout=5.0
         )
@@ -125,3 +128,8 @@ def record_payment(customer_id: str, amount: float):
         return {
             "error": "Customer service returned an error. Payment status is unknown."
         }
+
+def get_headers(token: str) -> dict:
+    return {
+        "Authorization": f"Bearer {token}"
+    }

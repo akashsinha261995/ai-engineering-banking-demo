@@ -59,8 +59,10 @@ def get_customer(
 )
 def get_customer_balance(
     customer_id: str,
+    token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
+    payload = decode_access_token(token)
     customer = db.get(Customer, customer_id)
 
     if not customer:

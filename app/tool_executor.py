@@ -8,7 +8,7 @@ from tool_registry import TOOL_FUNCTIONS
 logger = logging.getLogger(__name__)
 
 
-def execute_tool(tool_call, request_id):
+def execute_tool(tool_call, request_id, token):
 
     logger.info(
         "Executing tool",
@@ -76,7 +76,8 @@ def execute_tool(tool_call, request_id):
 
         result = tool_function(
             customer_id,
-            amount
+            amount,
+            token
         )
 
         if hasattr(result, "model_dump"):
@@ -88,7 +89,8 @@ def execute_tool(tool_call, request_id):
             verified_balance = TOOL_FUNCTIONS[
                 "get_customer_balance"
             ](
-                customer_id
+                customer_id,
+                token
             )
 
             if hasattr(verified_balance, "model_dump"):
@@ -119,7 +121,8 @@ def execute_tool(tool_call, request_id):
             )
 
             result = tool_function(
-                customer_id
+                customer_id,
+                token
             )
 
         else:

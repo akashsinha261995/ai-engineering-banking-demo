@@ -16,7 +16,14 @@ def main():
         if user_input.lower() == "exit":
             break
 
-        answer = agent.run(user_input)
+        token = input("Enter access token: ").strip()
+
+        answer = agent.run(
+            user_input,
+            token
+        )
+
+        #answer = agent.run(user_input)
 
         print(f"\nAI: {answer}\n")
 
