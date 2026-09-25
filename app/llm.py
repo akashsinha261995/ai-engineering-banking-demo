@@ -4,11 +4,17 @@ import time
 
 from openai import OpenAI
 
+from config import (
+    OPENROUTER_API_KEY, 
+    OPENROUTER_MODEL, 
+    OPENROUTER_BASE_URL
+)
+
 logger = logging.getLogger(__name__)
 
 client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.environ["OPENROUTER_API_KEY"],
+    base_url=OPENROUTER_BASE_URL,
+    api_key=OPENROUTER_API_KEY,
 )
 
 
@@ -19,7 +25,7 @@ def ask_llm(
 ):
 
     request = {
-        "model": "openrouter/free",
+        "model": OPENROUTER_MODEL,
         "messages": messages,
     }
 
