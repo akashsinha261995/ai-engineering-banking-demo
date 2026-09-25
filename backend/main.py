@@ -1,5 +1,6 @@
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
+from fastapi.security import OAuth2PasswordBearer
 
 from backend.models import (
     Customer, Payment
@@ -12,8 +13,18 @@ from backend.schemas import (
     PaymentRequest,
     PaymentResponse,
 )
+from backend.auth import router as auth_router
+from backend.security import (
+    decode_access_token, 
+    require_role
+)
 
 app = FastAPI(title="Customer Service API")
+app.include_router(auth_router)
+
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/auth/login"
+)
 
 init_db()  # Initialize the database and create tables if they don't exist
 
@@ -23,8 +34,10 @@ init_db()  # Initialize the database and create tables if they don't exist
 )
 def get_customer(
     customer_id: str,
+    token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
+    payload = decode_access_token(token)
     customer = db.get(Customer, customer_id)
 
     if not customer:
@@ -69,7 +82,8 @@ def get_customer_balance(
 def record_payment(
     customer_id: str,
     payment: PaymentRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_role("admin"))
 ):
     existing_payment = db.get(Payment, payment.payment_id)
 

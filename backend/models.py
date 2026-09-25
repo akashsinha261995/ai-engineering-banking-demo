@@ -17,3 +17,12 @@ class Payment(Base):
     id = Column(String, primary_key=True)
     customer_id = Column(String, nullable=False)
     amount = Column(Float, nullable=False)
+
+class User(Base):
+
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True)
+    username = Column(String, unique=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    role = Column(String, nullable=False, default="user")

@@ -1,9 +1,19 @@
+from sqlalchemy import text
+
 from backend.database import Base, SessionLocal, engine
 from backend.models import Customer
 
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+
+    # with engine.begin() as connection:
+    #     connection.execute(
+    #         text(
+    #             "ALTER TABLE users "
+    #             "ADD COLUMN role VARCHAR NOT NULL DEFAULT 'user'"
+    #         )
+    #     )
 
     db = SessionLocal()
 
