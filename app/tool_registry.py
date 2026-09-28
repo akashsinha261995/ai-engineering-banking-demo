@@ -4,9 +4,23 @@ from customer_service import (
     record_payment
 )
 
+TOOL_PERMISSIONS = {
+    "user": {
+        "get_customer",
+        "get_customer_balance",
+    },
+    "admin": {
+        "get_customer",
+        "get_customer_balance",
+        "record_payment",
+    },
+}
+
 
 TOOL_FUNCTIONS = {
     "get_customer": get_customer,
     "get_customer_balance": get_customer_balance,
     "record_payment": record_payment
 }
+
+ALLOWED_TOOLS = set(TOOL_FUNCTIONS.keys())

@@ -2,11 +2,16 @@ import logging
 import json
 import time
 
-from tool_registry import TOOL_FUNCTIONS
+from tool_registry import ( 
+    TOOL_FUNCTIONS,
+    ALLOWED_TOOLS, 
+    TOOL_PERMISSIONS
+)
 
+from auth import get_user_role
+from models import PaymentToolInput
 
 logger = logging.getLogger(__name__)
-
 
 def execute_tool(tool_call, request_id, token):
 
@@ -25,22 +30,54 @@ def execute_tool(tool_call, request_id, token):
 
     tool_name = tool_call.function.name
 
-    arguments = json.loads(
-        tool_call.function.arguments
-    )
+    if tool_name not in ALLOWED_TOOLS:
 
+        logger.warning(
+            "Tool rejected",
+            extra={
+                "event": "tool_rejected",
+                "tool": tool_name,
+                "request_id": request_id
+            }
+        )
+
+        return {
+            "success": False,
+            "error": f"Tool not allowed: {tool_name}"
+        }
+
+    user_role = get_user_role(token)
+
+    
     # ---------------------------------------------
     # Find the Python function
     # ---------------------------------------------
 
-    tool_function = TOOL_FUNCTIONS.get(tool_name)
+    allowed_tools = TOOL_PERMISSIONS.get(user_role, set())
 
-    if tool_function is None:
+    if tool_name not in allowed_tools:
+
+        logger.warning(
+            "Tool rejected",
+            extra={
+                "event": "tool_rejected",
+                "tool": tool_name,
+                "request_id": request_id
+            }
+        )
 
         return {
             "success": False,
-            "error": f"Unknown tool: {tool_name}"
+            "error": f"Tool not allowed: {tool_name}"
         }
+
+    tool_function = TOOL_FUNCTIONS.get(tool_name)
+
+    arguments = json.loads(
+            tool_call.function.arguments
+        )
+    
+
 
     # ---------------------------------------------
     # Financial action
@@ -48,13 +85,29 @@ def execute_tool(tool_call, request_id, token):
 
     if tool_name == "record_payment":
 
-        customer_id = str(
-            arguments["customer_id"]
-        )
+        try:
+            payment_input = PaymentToolInput(
+                **arguments
+            )
 
-        amount = float(
-            arguments["amount"]
-        )
+        except Exception as e:
+
+            logger.warning(
+                "Invalid payment tool arguments",
+                extra={
+                    "event": "tool_validation_failed",
+                    "tool": tool_name,
+                    "request_id": request_id
+                }
+            )
+
+            return {
+                "success": False,
+                "error": "Invalid payment arguments"
+            }
+
+        customer_id = payment_input.customer_id
+        amount = payment_input.amount
 
         print("\nPAYMENT CONFIRMATION")
         print(f"Customer ID: {customer_id}")

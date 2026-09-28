@@ -1,5 +1,4 @@
-from pydantic import BaseModel
-
+from pydantic import BaseModel, Field
 
 class Customer(BaseModel):
 
@@ -20,3 +19,8 @@ class PaymentResult(BaseModel):
     name: str
     payment:float
     remaining_outstanding: float
+
+class PaymentToolInput(BaseModel):
+
+    customer_id: str
+    amount: float = Field(gt=0, description="Payment amount must be greater than zero")

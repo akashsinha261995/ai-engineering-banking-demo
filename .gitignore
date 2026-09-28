@@ -4,5 +4,6 @@ __pycache__/
 
 app/.env
 *.db
+test_tool_security.py
 
 .env
