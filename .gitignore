@@ -6,4 +6,6 @@ app/.env
 *.db
 test_*.py
 
+chroma_db/
+
 .env
