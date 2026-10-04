@@ -3,7 +3,7 @@ import time
 
 from openai import OpenAI
 
-from config import (
+from app.config import (
     OPENROUTER_API_KEY, 
     OPENROUTER_MODEL, 
     OPENROUTER_BASE_URL

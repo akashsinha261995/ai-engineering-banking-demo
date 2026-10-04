@@ -1,89 +1,94 @@
 # FDE AI Project
 
-This repository contains a demo customer support system that combines:
+This project is a customer support demo that combines a terminal AI assistant, a FastAPI backend, and a retrieval-augmented generation (RAG) layer for policy lookup.
 
-- a terminal-based AI assistant in `app/`
-- a FastAPI backend in `backend/`
-- a simple retrieval-augmented generation (RAG) flow using knowledge stored in `knowledge/`
+## Overview
 
-The project is meant to simulate a support agent that can answer policy questions and access customer account information through LLM tool calling and authenticated API access.
+The system is designed to help with two kinds of tasks:
 
-## What the project does
+- answering policy and support questions using retrieved company knowledge
+- checking customer account details and recording payments through a backend service
 
-- Answers user questions with a chat-style CLI
-- Uses OpenRouter-compatible LLM calls for responses
-- Retrieves relevant knowledge from local policy text via embeddings and similarity search
-- Calls customer service APIs for customer lookup and payment actions
-- Validates JWT auth and role-based access for backend endpoints
+The application uses LLM tool calling, HTTP-based customer service calls, and a local Chroma vector store to ground responses in retrieved context.
 
-## Repository structure
+## Core components
 
-- `app/agent.py` - main conversational agent loop and tool-calling logic
-- `app/llm.py` - OpenAI/OpenRouter client and request wrapper
-- `app/config.py` - environment configuration for LLM settings
-- `app/auth.py` - JWT helper used by the CLI to read user role from a token
-- `app/customer_service.py` - HTTP client that calls the backend service
-- `app/tool_registry.py` - tool registry used by the assistant
-- `app/tool_executor.py` - executes LLM-selected tools and handles confirmation flow
-- `app/chunker.py` - splits policy text into chunks
-- `app/embeddings.py` - creates embeddings with the OpenRouter embedding model
-- `app/vector_store.py` - builds and searches an in-memory vector store
-- `app/knowledge.py` - keyword-based fallback knowledge lookup
-- `app/test_rag.py` and `app/test_vector_store.py` - quick retrieval demos
-- `knowledge/company_policies.txt` - source policy text used for RAG
-- `backend/main.py` - FastAPI application
-- `backend/auth.py` - login/register endpoints
-- `backend/security.py` - password hashing, JWT creation/validation, role checks
-- `backend/database.py` - SQLAlchemy database setup
-- `backend/models.py` - database schema for customers, payments, and users
-- `backend/init_db.py` - creates database tables and sample customer data
-- `backend/schemas.py` - Pydantic request/response schemas
+1. CLI assistant
+   - entry point: `app/main.py`
+   - uses the `CustomerAgent` in `app/agent.py`
+   - prompts for a user token and then calls the backend for customer data and payments
+
+2. FastAPI backend
+   - entry point: `backend/main.py`
+   - exposes customer and payment endpoints
+   - handles JWT authentication and role checks
+   - stores state in SQLite
+
+3. RAG layer
+   - policy source: `knowledge/company_policies.txt`
+   - embedding generation: `app/embeddings.py`
+   - chunking: `app/chunker.py`
+   - vector retrieval: `app/chroma_store.py`
+   - evaluation script: `tests/rag_eval.py`
+
+## Project structure
+
+- `app/agent.py` - LLM conversation loop and tool-calling orchestration
+- `app/main.py` - CLI runner
+- `app/llm.py` - OpenRouter/OpenAI client wrapper
+- `app/config.py` - runtime environment config
+- `app/auth.py` - JWT role helper for the client
+- `app/customer_service.py` - HTTP client to backend customer endpoints
+- `app/tool_executor.py` - tool execution and payment confirmation
+- `app/tool_registry.py` - mapping of tool names to functions
+- `app/chroma_store.py` - Chroma-backed retrieval implementation
+- `app/vector_store.py` - older in-memory vector store alternative
+- `app/embeddings.py` - embedding generation
+- `app/chunker.py` - splitting source knowledge into chunks
+- `app/knowledge.py` - keyword-based knowledge search fallback
+- `knowledge/company_policies.txt` - policy content used by the retrieval layer
+- `backend/main.py` - FastAPI app
+- `backend/auth.py` - register/login routes
+- `backend/security.py` - password hashing, JWT creation, validation, and role checks
+- `backend/database.py` - SQLAlchemy database config
+- `backend/models.py` - customer/payment/user models
+- `backend/init_db.py` - DB initialization and seed data
+- `backend/schemas.py` - request/response models
 - `customers.db` - SQLite database file
-- `requirements.txt` - project dependencies
+- `tests/rag_eval.py` - RAG evaluation script with expected retrieval and answer checks
 
-## RAG flow
+## Features
 
-The knowledge layer is built around local policy text stored in `knowledge/company_policies.txt`.
+- company policy lookup through Chroma vector search
+- support-agent style question answering grounded in retrieved context
+- customer lookup by ID
+- outstanding balance retrieval
+- payment recording with validation and confirmation
+- JWT-based auth and role checks for protected endpoints
 
-The flow is:
+## API routes
 
-1. `create_chunks()` splits the policy file into sections
-2. `create_embedding()` generates vector embeddings
-3. `build_vector_store()` stores chunk text and embeddings in memory
-4. `search_vector_store()` finds the most relevant chunks by cosine similarity
-5. The retrieved context is passed to the LLM as grounded support data
+The backend exposes:
 
-This lets the assistant answer policy-based questions using retrieved context instead of relying only on model memory.
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /customers/{customer_id}`
+- `GET /customers/{customer_id}/balance`
+- `POST /customers/{customer_id}/payments`
 
-## Backend API
+Notes:
 
-The FastAPI app exposes these routes:
+- customer read endpoints require a bearer token
+- payment creation requires the `admin` role
+- all payment validation is enforced in the backend before updating the balance
 
-- `POST /auth/register` - create a user account
-- `POST /auth/login` - log in and receive a JWT
-- `GET /customers/{customer_id}` - fetch a customer record
-- `GET /customers/{customer_id}/balance` - fetch the outstanding balance
-- `POST /customers/{customer_id}/payments` - record a payment
+## Setup
 
-Authentication is handled with bearer tokens and JWTs. Customer read endpoints require a valid bearer token. Payment creation is protected by a role check requiring the `admin` role.
-
-## CLI usage
-
-Start the backend:
-
-```bash
-uvicorn backend.main:app --reload
-```
-
-Then run the terminal assistant:
+Install dependencies:
 
 ```bash
-python app/main.py
+pip install -r requirements.txt
 ```
-
-The CLI prompts for a user access token before each request. This token is used in authenticated calls to the backend service.
-
-## Environment variables
 
 Create a `.env` file in the project root:
 
@@ -94,20 +99,46 @@ OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 JWT_SECRET=your_jwt_secret
 ```
 
-The app expects these values to be present at runtime.
+Start the backend:
 
-## Sample data
+```bash
+uvicorn backend.main:app --reload
+```
 
-The project seeds sample customers at startup:
+Run the assistant in a separate terminal:
+
+```bash
+python app/main.py
+```
+
+## RAG evaluation
+
+The repository includes a lightweight retrieval evaluation script in `tests/rag_eval.py`.
+
+It tests questions such as:
+
+- refund timing
+- payment escalation rules
+- support hours
+- whether a payment can exceed the outstanding balance
+- employee policy questions that should not have a matching support document
+
+The script checks:
+
+- whether the expected policy section was retrieved
+- whether the answer contains the expected keywords
+- whether unsupported questions return no relevant retrieval
+
+## Seed data
+
+The application initializes sample customers when the backend starts:
 
 - 101 - Rahul Kumar
 - 102 - Priya Sharma
 - 103 - Amit Singh
 
-These records are inserted by `backend/init_db.py` into the SQLite database.
-
 ## Notes
 
-- The project is a prototype/demo and is not production-ready for real financial systems.
-- The knowledge layer depends on local files and embeddings rather than a managed vector database.
-- The customer assistant and backend are separate pieces, but they are designed to work together through authenticated HTTP requests.
+- This is a demo/prototype project, not a production-ready financial system.
+- The RAG layer uses local policy documents and a local Chroma vector store.
+- The CLI and backend are designed to work together through authenticated HTTP calls.

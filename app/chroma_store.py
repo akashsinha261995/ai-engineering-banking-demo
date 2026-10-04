@@ -1,7 +1,7 @@
 import chromadb
 
-from chunker import create_chunks
-from embeddings import create_embedding
+from app.chunker import create_chunks
+from app.embeddings import create_embedding
 
 
 client = chromadb.PersistentClient(
