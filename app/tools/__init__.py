@@ -4,5 +4,6 @@ from .customer_tools import (
 )
 
 from .payment_tools import (
-    payment_tool
+    payment_tool,
+    knowledge_tool
 )

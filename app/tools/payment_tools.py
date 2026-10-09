@@ -20,3 +20,29 @@ payment_tool = {
         }
     }
 }
+
+
+knowledge_tool = {
+    "type": "function",
+    "function": {
+        "name": "search_company_knowledge",
+        "description": (
+            "Search company policies and support documentation "
+            "to answer questions about refunds, payments, "
+            "support hours, and company procedures. "
+            "Use this tool when the user asks about company policies. "
+            "Do not use it for customer account information or payments."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The company policy question to search for."
+                }
+            },
+            "required": ["query"],
+            "additionalProperties": False
+        }
+    }
+}

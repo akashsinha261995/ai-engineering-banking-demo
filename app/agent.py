@@ -10,7 +10,8 @@ from llm import ask_llm
 from tools import (
     customer_tool,
     balance_tool,
-    payment_tool
+    payment_tool,
+    knowledge_tool
 )
 
 from tool_executor import execute_tool
@@ -18,7 +19,8 @@ from tool_executor import execute_tool
 TOOLS = [
     customer_tool,
     balance_tool,
-    payment_tool
+    payment_tool,
+    knowledge_tool
 ]
 
 
@@ -32,8 +34,12 @@ class CustomerAgent:
                 "content": """
 You are a customer support assistant.
 
-You can retrieve customer information and perform
-customer operations using the available tools.
+You can retrieve customer information, perform customer
+operations, and search company policies using the available tools.
+
+When the user asks about company policies, refunds, payment
+rules, support hours, or company procedures, use the
+search_company_knowledge tool.
 
 When responding after a tool call, use only information
 returned by the tool.
@@ -67,6 +73,14 @@ pleasant messages or greetings. Only provide the information requested.
 After a successful state-changing operation, use
 another tool to verify the resulting state when
 appropriate.
+
+When using search_company_knowledge:
+- Answer using the retrieved policy content.
+- Include the source filename and section from the tool result.
+- Do not invent or modify source metadata.
+- If no relevant policy is found, clearly say that you could not find the answer 
+  in the company knowledge base.
+
 """
             }
         ]
@@ -74,6 +88,8 @@ appropriate.
     def run(self, user_input, token):
         request_id = str(uuid.uuid4())
         start_time = time.perf_counter()
+
+        retrieved_sources = []
 
         logger.info(
             "Received user request",
@@ -106,7 +122,16 @@ appropriate.
             # No tool call = final answer
             if not message.tool_calls:
 
-                answer = message.content
+                answer = message.content or ""
+
+                if retrieved_sources:
+                    source_lines = [
+                        f"- {source} — {section}"
+                        for source, section in retrieved_sources
+                    ]
+
+                    answer += "\n\nSources:\n" + "\n".join(source_lines)
+                
 
                 self.messages.append({
                     "role": "assistant",
@@ -162,6 +187,21 @@ appropriate.
                 request_id,
                 token
             )
+
+            if (
+                tool_call.function.name == "search_company_knowledge"
+                and result.get("success")
+                and result.get("found")
+            ):
+                for match in result.get("matches", []):
+                    source_info = (
+                        match["source"],
+                        match["section"]
+                    )
+
+                    if source_info not in retrieved_sources:
+                        retrieved_sources.append(source_info)
+
 
             # Send tool result back to LLM
             self.messages.append({
