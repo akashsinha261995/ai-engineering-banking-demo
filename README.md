@@ -75,6 +75,22 @@ It uses LLM tool calling, HTTP client requests to the backend, and retrieval-aug
 - confirmation step before making a payment in the CLI
 - JWT-based authentication for protected backend endpoints
 - admin-role enforcement for payment actions
+- explicit workflow tracking for payment steps and verification status
+
+## Workflow tracking
+
+The project includes a lightweight workflow model in `app/workflow.py` to track multi-step payment processing.
+
+The `PaymentWorkflow` class defines a sequence of steps:
+
+- `retrieve_customer`
+- `check_balance`
+- `record_payment`
+- `verify_balance`
+
+Each step can be marked as pending, running, completed, or failed. The workflow also exposes helpers to move through those states and identify the next unresolved or failed step.
+
+The example flow in `app/test_workflow.py` demonstrates how the status model is updated across a payment operation, including a failed verification step.
 
 ## API routes
 
@@ -141,15 +157,13 @@ The backend creates demo customers at startup:
 - 102 - Priya Sharma
 - 103 - Amit Singh
 
-## Evaluation
+## Evaluation and tests
 
-The project includes a retrieval-evaluation script at tests/rag_eval.py.
+The project includes retrieval and workflow checks in the `tests/` and `app/` folders.
 
-It checks:
-
-- whether the expected policy section is retrieved
-- whether the final answer contains expected keywords
-- whether unsupported questions return no relevant result
+- `tests/rag_eval.py` checks whether the expected policy section is retrieved and whether the answer contains the expected keywords
+- `app/test_workflow.py` demonstrates the payment workflow state machine and status transitions
+- additional test files cover itemized knowledge retrieval, Chroma queries, and tool validation
 
 ## Notes
 
